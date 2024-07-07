@@ -1,0 +1,24 @@
+name: TrustShops
+version: '${version}'
+main: me.collinb.trustshops.TrustShops
+api-version: '1.20'
+author: 'collin-b1'
+description: Nonintrusive, trust-based player shops
+commands:
+  createshop:
+    description: Register a container shop
+    usage: /<command> <bought_item> <bought_quantity> [sold_item] [sold_quantity]
+    aliases: [tscreate]
+  deleteshop:
+    description: Unregister a container shop
+    usage: /<command>
+    aliases: [tsdelete]
+  shops:
+    description: Find shops
+    usage: /<command> <buying/selling/player/info> [item/player]
+    aliases: [tsshops, shop]
+
+permissions:
+  trustshops.*:
+    default: op
+    description: Access to all TrustShop functions

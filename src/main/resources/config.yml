@@ -1,0 +1,4 @@
+allowed-containers:
+  - CHEST
+  - TRAPPED_CHEST
+  - BARREL
