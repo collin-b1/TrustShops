@@ -36,7 +36,7 @@ public class ContainerShopManager {
             queryShopStatement.setMaxRows(1);
             ResultSet resultSet = queryShopStatement.executeQuery();
 
-            Optional<ContainerShop> found = getShopSetFromResults(resultSet).stream().findFirst();
+            Optional<ContainerShop> found = getshopQueueFromResults(resultSet).stream().findFirst();
             return found.orElse(null);
         } catch (SQLException e) {
             return null;
@@ -90,7 +90,7 @@ public class ContainerShopManager {
         }
     }
 
-    public Set<ContainerShop> findShopsByItem(Material item, ContainerShopTransactionType type) {
+    public Queue<ContainerShop> findShopsByItem(Material item, ContainerShopTransactionType type) {
         try (Connection connection = databaseManager.getConnection()) {
             PreparedStatement shopQuery;
             switch (type) {
@@ -109,26 +109,26 @@ public class ContainerShopManager {
                     break;
             }
             ResultSet results = shopQuery.executeQuery();
-            return getShopSetFromResults(results);
+            return getshopQueueFromResults(results);
         } catch (SQLException e) {
-            return new TreeSet<>();
+            return new PriorityQueue<>();
         }
     }
 
-    public Set<ContainerShop> findShopsByPlayer(OfflinePlayer shopOwner) {
+    public Queue<ContainerShop> findShopsByPlayer(OfflinePlayer shopOwner) {
         try (Connection connection = databaseManager.getConnection()) {
             PreparedStatement shopQuery;
             shopQuery = connection.prepareStatement("SELECT * FROM shop WHERE uuid = ?");
             shopQuery.setString(1, shopOwner.getUniqueId().toString());
             ResultSet results = shopQuery.executeQuery();
-            return getShopSetFromResults(results);
+            return getshopQueueFromResults(results);
         } catch (SQLException e) {
-            return new TreeSet<>();
+            return new PriorityQueue<>();
         }
     }
 
-    public Set<ContainerShop> getShopSetFromResults(ResultSet resultSet) throws SQLException {
-        TreeSet<ContainerShop> shopSet = new TreeSet<>();
+    public Queue<ContainerShop> getshopQueueFromResults(ResultSet resultSet) throws SQLException {
+        Queue<ContainerShop> shopQueue = new PriorityQueue<>();
         while (resultSet.next()) {
             String uuid = resultSet.getString("uuid");
             OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
@@ -141,8 +141,8 @@ public class ContainerShopManager {
                 continue;
             }
             ContainerShop shop = new ContainerShop(shopOwner, shopLocation, containerItem, containerAmount, playerItem, playerAmount);
-            shopSet.add(shop);
+            shopQueue.add(shop);
         }
-        return shopSet;
+        return shopQueue;
     }
 }

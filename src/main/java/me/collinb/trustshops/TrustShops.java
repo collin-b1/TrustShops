@@ -5,6 +5,7 @@ import me.collinb.trustshops.commands.CommandCreateShop;
 import me.collinb.trustshops.commands.CommandDeleteShop;
 import me.collinb.trustshops.commands.CommandShops;
 import me.collinb.trustshops.listeners.PlayerListener;
+import me.collinb.trustshops.listeners.WorldListener;
 import me.collinb.trustshops.managers.ChatManager;
 import me.collinb.trustshops.managers.ContainerShopManager;
 import me.collinb.trustshops.managers.DatabaseManager;
@@ -46,6 +47,7 @@ public final class TrustShops extends JavaPlugin {
 
         // Register events
         getServer().getPluginManager().registerEvents(new PlayerListener(shopManager), this);
+        getServer().getPluginManager().registerEvents(new WorldListener(shopManager), this);
 
         // Register commands
         CommandCreateShop commandCreateShop = new CommandCreateShop(shopManager);
@@ -53,7 +55,10 @@ public final class TrustShops extends JavaPlugin {
         Objects.requireNonNull(this.getCommand("createshop")).setTabCompleter(commandCreateShop);
 
         Objects.requireNonNull(this.getCommand("deleteshop")).setExecutor(new CommandDeleteShop(shopManager));
-        Objects.requireNonNull(this.getCommand("shops")).setExecutor(new CommandShops(shopManager, chatManager));
+
+        CommandShops commandShops = new CommandShops(shopManager, chatManager);
+        Objects.requireNonNull(this.getCommand("shops")).setExecutor(commandShops);
+        Objects.requireNonNull(this.getCommand("shops")).setTabCompleter(commandShops);
     }
 
     @Override

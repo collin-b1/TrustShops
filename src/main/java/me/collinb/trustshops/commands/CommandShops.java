@@ -13,13 +13,17 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class CommandShops implements CommandExecutor {
+public class CommandShops implements CommandExecutor, TabCompleter {
+    private static final String[] SUBCOMMANDS = {"buying", "selling", "player", "info"};
     private final ContainerShopManager shopManager;
     private final ChatManager chatManager;
     public CommandShops(ContainerShopManager shopManager, ChatManager chatManager) {
@@ -32,12 +36,12 @@ public class CommandShops implements CommandExecutor {
             return false;
         }
 
-        Set<ContainerShop> shopSet;
+        Queue<ContainerShop> shopQueue;
         switch (args[0].toLowerCase()) {
             case "buying": {
                 if (args.length < 2) return false;
-                shopSet = shopManager.findShopsByItem(Objects.requireNonNull(Material.getMaterial(args[1])), ContainerShopTransactionType.BUY);
                 Material item = Material.getMaterial(args[1].toUpperCase().replace("MINECRAFT:", ""));
+                shopQueue = shopManager.findShopsByItem(item, ContainerShopTransactionType.BUY);
                 if (item == null) {
                     commandSender.sendMessage(Component.text("Invalid item!").color(NamedTextColor.RED));
                     return false;
@@ -46,8 +50,8 @@ public class CommandShops implements CommandExecutor {
             }
             case "selling": {
                 if (args.length < 2) return false;
-                shopSet = shopManager.findShopsByItem(Objects.requireNonNull(Material.getMaterial(args[1])), ContainerShopTransactionType.SELL);
                 Material item = Material.getMaterial(args[1].toUpperCase().replace("MINECRAFT:", ""));
+                shopQueue = shopManager.findShopsByItem(item, ContainerShopTransactionType.SELL);
                 if (item == null) {
                     commandSender.sendMessage(Component.text("Invalid item!").color(NamedTextColor.RED));
                     return false;
@@ -61,7 +65,7 @@ public class CommandShops implements CommandExecutor {
                     commandSender.sendMessage(Component.text("Invalid player!").color(NamedTextColor.RED));
                     return true;
                 }
-                shopSet = shopManager.findShopsByPlayer(shopOwner);
+                shopQueue = shopManager.findShopsByPlayer(shopOwner);
                 break;
             }
             case "info": {
@@ -69,16 +73,44 @@ public class CommandShops implements CommandExecutor {
                     commandSender.sendMessage(Component.text("This command can only be used in-game.").color(NamedTextColor.RED));
                     return true;
                 }
-                commandSender.sendMessage(Component.text("Interact with a shop to view its info.").color(NamedTextColor.YELLOW));
-                shopManager.awaitInteraction(player, null, ContainerShopModificationType.INFO);
+
+                if (shopManager.awaitInteraction(player, null, ContainerShopModificationType.INFO)) {
+                    commandSender.sendMessage(Component.text("Interact with a shop to view its info.").color(NamedTextColor.YELLOW));
+                } else {
+                    commandSender.sendMessage(Component.text("Command failed: Already pending shop action!").color(NamedTextColor.RED));
+                }
                 return true;
             }
             default: {
                 return false;
             }
         }
-        chatManager.sendShopSet(shopSet, commandSender);
+        chatManager.sendShops(shopQueue, commandSender);
 
         return true;
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
+        if (strings.length == 1) {
+            final List<String> completions = new ArrayList<>();
+
+            StringUtil.copyPartialMatches(strings[0], List.of(SUBCOMMANDS), completions);
+
+            return completions;
+        } else if (strings.length == 2) {
+            if (strings[0].equals("buying") || strings[0].equals("selling")) {
+                String partialItem = strings[1].toUpperCase().replace("MINECRAFT:", "");
+                return Arrays.stream(Material.values())
+                        .map(material -> "minecraft:" + material.toString().toLowerCase())
+                        .filter(name -> name.startsWith("minecraft:" + partialItem.toLowerCase()))
+                        .sorted()
+                        .collect(Collectors.toList());
+            } else {
+                return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+            }
+        }
+
+        return new ArrayList<>();
     }
 }

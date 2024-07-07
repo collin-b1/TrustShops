@@ -34,7 +34,7 @@ public class ContainerShop implements Comparable<ContainerShop> {
     private final int playerAmount;
 
     // Amount of sold stacks remaining
-    private int stock = 0;
+    private int stock;
 
     public ContainerShop(@NotNull OfflinePlayer shopOwner, @NotNull Location shopLocation, @NotNull Material containerItem, int containerAmount, @NotNull Material playerItem, int playerAmount) {
         this.shopOwner = shopOwner;
@@ -98,8 +98,9 @@ public class ContainerShop implements Comparable<ContainerShop> {
                 .append(Component.text(getPlayerAmount()).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
                 .append(Component.text("x").color(NamedTextColor.DARK_GRAY))
                 .append(Component.text(getPlayerItem().name()).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD))
-                .append(Component.text(" [Stock: ").color(NamedTextColor.DARK_GRAY))
-                .append(Component.text(getStock()).color(NamedTextColor.YELLOW))
+                .append(Component.text(" [").color(NamedTextColor.DARK_GRAY))
+                .append(Component.text("Stock: ").color(NamedTextColor.GRAY))
+                .append(Component.text(getStock()).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
                 .append(Component.text(String.format("] (%d, %d)", getShopLocation().getBlockX(), getShopLocation().getBlockZ()))
                         .color(NamedTextColor.DARK_GRAY));
     }
