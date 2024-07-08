@@ -11,6 +11,12 @@ show-offline-player-shops: true
 # Show stocks with no stock on search
 show-out-of-stock-shops: true
 
+# Shop sort type (DISTANCE, STOCK, PRICE)
+shop-sort-type: STOCK
+
+# How the shops should be sorted (true=ascending, false=descending)
+shop-sort-ascending: false
+
 # Controls the maximum and minimum quantity a shop can buy
 min-buying-amount: 1
 max-buying-amount: 3456

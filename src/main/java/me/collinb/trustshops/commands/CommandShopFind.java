@@ -30,14 +30,15 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        if (args.length < 1) {
+        if (args.length < 2) {
             return false;
         }
+
+        int page = args.length < 3 ? 1 : Integer.parseInt(args[2]);
 
         Queue<ContainerShop> shopQueue;
         switch (args[0].toLowerCase()) {
             case "buying": {
-                if (args.length < 2) return false;
                 Material item = Material.getMaterial(args[1].toUpperCase().replace("MINECRAFT:", ""));
                 if (item == null) {
                     commandSender.sendMessage("Invalid item: " + args[1]);
@@ -48,7 +49,6 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
                 break;
             }
             case "selling": {
-                if (args.length < 2) return false;
                 Material item = Material.getMaterial(args[1].toUpperCase().replace("MINECRAFT:", ""));
                 if (item == null) {
                     plugin.getChatManager().fail(commandSender, "Invalid item: " + args[1]);
@@ -58,7 +58,6 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
                 break;
             }
             case "player": {
-                if (args.length < 2) return false;
                 OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(args[1]);
                 if (!shopOwner.hasPlayedBefore()) {
                     plugin.getChatManager().fail(commandSender, "Invalid player: " + args[1]);
@@ -71,7 +70,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
                 return false;
             }
         }
-        plugin.getChatManager().sendShops(shopQueue, commandSender);
+        plugin.getChatManager().sendShops(shopQueue, commandSender, page);
 
         return true;
     }

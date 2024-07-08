@@ -1,5 +1,6 @@
 package me.collinb.trustshops;
 
+import me.collinb.trustshops.managers.ContainerShopManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -153,6 +154,18 @@ public class ContainerShop implements Comparable<ContainerShop> {
 
     @Override
     public int compareTo(@NotNull ContainerShop o) {
-        return o.getTotalForSale() - getTotalForSale();
+        switch (ContainerShopManager.shopSortType) {
+            case STOCK -> {
+                return Integer.compare(getTotalForSale(), o.getTotalForSale());
+            }
+            case DISTANCE -> {
+                int aDistance = (int) getShopLocation().distance(getShopLocation().getWorld().getSpawnLocation());
+                int bDistance = (int) o.getShopLocation().distance(o.getShopLocation().getWorld().getSpawnLocation());
+                return Integer.compare(aDistance, bDistance);
+            }
+            default -> {
+                return Integer.compare(getContainerAmount() / getPlayerAmount(), o.getContainerAmount() / o.getPlayerAmount());
+            }
+        }
     }
 }

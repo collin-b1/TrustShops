@@ -26,10 +26,6 @@ public final class TrustShops extends JavaPlugin {
     public void onEnable() {
         reload();
 
-        databaseManager = new DatabaseManager();
-        shopManager = new ContainerShopManager(this);
-        chatManager = new ChatManager(this);
-
         // Register events
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new WorldListener(this), this);
@@ -84,6 +80,13 @@ public final class TrustShops extends JavaPlugin {
         } else {
             BANNED_ITEMS = ImmutableSet.of();
         }
+
+        this.databaseManager = new DatabaseManager();
+        this.shopManager = new ContainerShopManager(this);
+        this.chatManager = new ChatManager(this);
+
+        this.chatManager.loadConfigVariables();
+        this.shopManager.loadConfigVariables();
 
         getLogger().info(String.format("Loaded %d containers", ALLOWED_CONTAINERS.size()));
         getLogger().info(String.format("Loaded %d banned items", ALLOWED_CONTAINERS.size()));

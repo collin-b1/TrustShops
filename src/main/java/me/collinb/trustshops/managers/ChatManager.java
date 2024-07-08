@@ -8,6 +8,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 
 import java.util.Iterator;
+import java.util.List;
+import java.util.Queue;
 
 public class ChatManager {
     private final TrustShops plugin;
@@ -28,13 +30,20 @@ public class ChatManager {
         return Component.text("=========================").color(NamedTextColor.DARK_GRAY);
     }
 
-    public void sendShops(Iterable<ContainerShop> shopSet, CommandSender player) {
+    public void sendShops(Queue<ContainerShop> shopSet, CommandSender player, int page) {
+        int startingIndex = (page - 1) * shopsPerPage;
+
         player.sendMessage(getDisplayHeader());
-        Iterator<ContainerShop> iterator = shopSet.iterator();
-        for (int i = 0; i < shopsPerPage && iterator.hasNext(); ++i) {
-            ContainerShop shop = iterator.next();
-            player.sendMessage(shop.getDisplayLine());
+
+        List<ContainerShop> shopList = shopSet.stream().toList();
+        if (startingIndex < shopList.size()) {
+            Iterator<ContainerShop> iterator = shopSet.stream().toList().listIterator(startingIndex);
+            for (int i = startingIndex; i < (startingIndex + shopsPerPage) && iterator.hasNext(); ++i) {
+                ContainerShop shop = iterator.next();
+                player.sendMessage(shop.getDisplayLine());
+            }
         }
+
         player.sendMessage(getDisplayFooter());
     }
 

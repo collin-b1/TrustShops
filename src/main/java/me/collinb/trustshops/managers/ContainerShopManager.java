@@ -4,6 +4,7 @@ import me.collinb.trustshops.ContainerShop;
 import me.collinb.trustshops.ContainerShopPendingAction;
 import me.collinb.trustshops.TrustShops;
 import me.collinb.trustshops.enums.ContainerShopModificationType;
+import me.collinb.trustshops.enums.ContainerShopSortType;
 import me.collinb.trustshops.enums.ContainerShopTransactionType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -25,6 +26,10 @@ public class ContainerShopManager {
     private final Map<Player, ContainerShopPendingAction> awaitingInteraction;
     private boolean showOfflinePlayerShops;
     private boolean showUnstockedPlayerShops;
+
+    public static ContainerShopSortType shopSortType;
+
+    public static boolean sortShopsAscending;
 
     public ContainerShopManager(TrustShops plugin) {
         this.plugin = plugin;
@@ -132,7 +137,7 @@ public class ContainerShopManager {
     }
 
     public Queue<ContainerShop> getShopQueueFromResults(ResultSet resultSet) throws SQLException {
-        Queue<ContainerShop> shopQueue = new PriorityQueue<>();
+        PriorityQueue<ContainerShop> shopQueue = new PriorityQueue<>();
         while (resultSet.next()) {
             String uuid = resultSet.getString("uuid");
             OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
@@ -150,7 +155,7 @@ public class ContainerShopManager {
             if (!showUnstockedPlayerShops && shop.getStock() == 0)
                 continue;
 
-            shopQueue.add(shop);
+            shopQueue.offer(shop);
         }
         return shopQueue;
     }
@@ -158,5 +163,7 @@ public class ContainerShopManager {
     public void loadConfigVariables() {
         this.showOfflinePlayerShops = plugin.getConfig().getBoolean("show-offline-player-shops", true);
         this.showUnstockedPlayerShops = plugin.getConfig().getBoolean("show-out-of-stock-shops", true);
+        shopSortType = ContainerShopSortType.valueOf(plugin.getConfig().getString("shop-sort-type", "STOCK"));
+        sortShopsAscending = plugin.getConfig().getBoolean("shop-sort-ascending", false);
     }
 }

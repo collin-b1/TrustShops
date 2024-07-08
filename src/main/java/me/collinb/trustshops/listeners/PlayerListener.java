@@ -3,8 +3,6 @@ package me.collinb.trustshops.listeners;
 import me.collinb.trustshops.ContainerShop;
 import me.collinb.trustshops.ContainerShopPendingAction;
 import me.collinb.trustshops.TrustShops;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -78,7 +76,6 @@ public class PlayerListener implements Listener {
                         ContainerShop shop = action.shop();
                         shop.setShopLocation(block.getLocation());
                         if (plugin.getShopManager().registerShop(shop)) {
-                            player.sendMessage(Component.text("Registered shop!").color(NamedTextColor.GREEN));
                             plugin.getChatManager().success(player, "Registered shop!");
                         } else {
                             plugin.getChatManager().fail(player, "Failed to register shop!");
@@ -109,7 +106,7 @@ public class PlayerListener implements Listener {
                     case INFO -> {
                         Queue<ContainerShop> shops = plugin.getShopManager().getShopsByLocation(block.getLocation());
                         if (!shops.isEmpty()) {
-                            plugin.getChatManager().sendShops(shops, player);
+                            plugin.getChatManager().sendShops(shops, player, 1);
                         } else {
                             plugin.getChatManager().fail(player, "Not a valid shop!");
                         }
