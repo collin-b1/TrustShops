@@ -2,38 +2,30 @@ package me.collinb.trustshops.listeners;
 
 import me.collinb.trustshops.ContainerShop;
 import me.collinb.trustshops.TrustShops;
-import me.collinb.trustshops.managers.ContainerShopManager;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 
-public class WorldListener implements Listener {
-    private final ContainerShopManager shopManager;
+import java.util.Queue;
 
-    public WorldListener(ContainerShopManager shopManager) {
-        this.shopManager = shopManager;
+public class WorldListener implements Listener {
+    private final TrustShops plugin;
+
+    public WorldListener(TrustShops plugin) {
+        this.plugin = plugin;
     }
 
     @EventHandler
     public void onBlockExplosion(BlockExplodeEvent event) {
-        if (TrustShops.ALLOWED_CONTAINERS.contains(event.getBlock().getType())) {
-            Location location = event.getBlock().getLocation();
-            ContainerShop shop = shopManager.getShopByLocation(location);
-            if (shop != null) {
-                shopManager.deleteShop(location);
-            }
-        }
-    }
-
-    @EventHandler
-    public void onBlockBurn(BlockBurnEvent event) {
-        if (TrustShops.ALLOWED_CONTAINERS.contains(event.getBlock().getType())) {
-            Location location = event.getBlock().getLocation();
-            ContainerShop shop = shopManager.getShopByLocation(location);
-            if (shop != null) {
-                shopManager.deleteShop(location);
+        for (Block explodedBlock : event.blockList()) {
+            if (TrustShops.ALLOWED_CONTAINERS.contains(explodedBlock.getType())) {
+                Location location = explodedBlock.getLocation();
+                Queue<ContainerShop> shops = plugin.getShopManager().getShopsByLocation(location);
+                for (ContainerShop shop : shops) {
+                    plugin.getShopManager().deleteShop(shop.getShopLocation());
+                }
             }
         }
     }

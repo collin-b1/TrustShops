@@ -1,9 +1,7 @@
 package me.collinb.trustshops;
 
 import com.google.common.collect.ImmutableSet;
-import me.collinb.trustshops.commands.CommandCreateShop;
-import me.collinb.trustshops.commands.CommandDeleteShop;
-import me.collinb.trustshops.commands.CommandShops;
+import me.collinb.trustshops.commands.*;
 import me.collinb.trustshops.listeners.PlayerListener;
 import me.collinb.trustshops.listeners.WorldListener;
 import me.collinb.trustshops.managers.ChatManager;
@@ -22,14 +20,44 @@ public final class TrustShops extends JavaPlugin {
     ContainerShopManager shopManager;
     ChatManager chatManager;
     public static ImmutableSet<Material> ALLOWED_CONTAINERS;
+    public static ImmutableSet<Material> BANNED_ITEMS;
+
     @Override
     public void onEnable() {
-        saveResource("config.yml", false);
-        saveDefaultConfig();
+        reload();
 
         databaseManager = new DatabaseManager();
-        shopManager = new ContainerShopManager(databaseManager);
-        chatManager = new ChatManager();
+        shopManager = new ContainerShopManager(this);
+        chatManager = new ChatManager(this);
+
+        // Register events
+        getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        getServer().getPluginManager().registerEvents(new WorldListener(this), this);
+
+        // Register commands
+        CommandShopCreate commandCreateShop = new CommandShopCreate(this);
+        Objects.requireNonNull(this.getCommand("tscreate")).setExecutor(commandCreateShop);
+        Objects.requireNonNull(this.getCommand("tscreate")).setTabCompleter(commandCreateShop);
+
+        Objects.requireNonNull(this.getCommand("tsdelete")).setExecutor(new CommandShopDelete(this));
+
+        Objects.requireNonNull(this.getCommand("tsinfo")).setExecutor(new CommandShopInfo(this));
+
+        CommandShopFind commandFindShops = new CommandShopFind(this);
+        Objects.requireNonNull(this.getCommand("tsfind")).setExecutor(commandFindShops);
+        Objects.requireNonNull(this.getCommand("tsfind")).setTabCompleter(commandFindShops);
+
+        Objects.requireNonNull(this.getCommand("tsreload")).setExecutor(new CommandReload(this));
+    }
+
+    @Override
+    public void onDisable() {
+        // Plugin shutdown logic
+    }
+
+    public void reload() {
+        this.saveDefaultConfig();
+        this.reloadConfig();
 
         // Load whitelisted containers
         if (this.getConfig().contains("allowed-containers")) {
@@ -43,26 +71,33 @@ public final class TrustShops extends JavaPlugin {
         } else {
             ALLOWED_CONTAINERS = ImmutableSet.of(Material.CHEST);
         }
-        getLogger().info("Loaded containers: " + ALLOWED_CONTAINERS.toString());
 
-        // Register events
-        getServer().getPluginManager().registerEvents(new PlayerListener(shopManager), this);
-        getServer().getPluginManager().registerEvents(new WorldListener(shopManager), this);
+        // Load banned items
+        if (this.getConfig().contains("banned-items")) {
+            BANNED_ITEMS = this.getConfig().getStringList("banned-items")
+                    .stream()
+                    .map(Material::getMaterial)
+                    .collect(Collectors.collectingAndThen(
+                            Collectors.toSet(),
+                            ImmutableSet::copyOf
+                    ));
+        } else {
+            BANNED_ITEMS = ImmutableSet.of();
+        }
 
-        // Register commands
-        CommandCreateShop commandCreateShop = new CommandCreateShop(shopManager);
-        Objects.requireNonNull(this.getCommand("createshop")).setExecutor(commandCreateShop);
-        Objects.requireNonNull(this.getCommand("createshop")).setTabCompleter(commandCreateShop);
-
-        Objects.requireNonNull(this.getCommand("deleteshop")).setExecutor(new CommandDeleteShop(shopManager));
-
-        CommandShops commandShops = new CommandShops(shopManager, chatManager);
-        Objects.requireNonNull(this.getCommand("shops")).setExecutor(commandShops);
-        Objects.requireNonNull(this.getCommand("shops")).setTabCompleter(commandShops);
+        getLogger().info(String.format("Loaded %d containers", ALLOWED_CONTAINERS.size()));
+        getLogger().info(String.format("Loaded %d banned items", ALLOWED_CONTAINERS.size()));
     }
 
-    @Override
-    public void onDisable() {
-        // Plugin shutdown logic
+    public ChatManager getChatManager() {
+        return chatManager;
+    }
+
+    public ContainerShopManager getShopManager() {
+        return shopManager;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
 }

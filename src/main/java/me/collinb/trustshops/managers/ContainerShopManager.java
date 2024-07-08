@@ -2,6 +2,7 @@ package me.collinb.trustshops.managers;
 
 import me.collinb.trustshops.ContainerShop;
 import me.collinb.trustshops.ContainerShopPendingAction;
+import me.collinb.trustshops.TrustShops;
 import me.collinb.trustshops.enums.ContainerShopModificationType;
 import me.collinb.trustshops.enums.ContainerShopTransactionType;
 import org.bukkit.Bukkit;
@@ -10,34 +11,37 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 
 public class ContainerShopManager {
-    private final DatabaseManager databaseManager;
+    private final TrustShops plugin;
 
     // Users who have used an interactive command but haven't selected a container yet
     private final Map<Player, ContainerShopPendingAction> awaitingInteraction;
+    private boolean showOfflinePlayerShops;
+    private boolean showUnstockedPlayerShops;
 
-    public ContainerShopManager(DatabaseManager databaseManager) {
-        this.databaseManager = databaseManager;
-        awaitingInteraction = new HashMap<>();
+    public ContainerShopManager(TrustShops plugin) {
+        this.plugin = plugin;
+        this.awaitingInteraction = new HashMap<>();
+        loadConfigVariables();
     }
 
-    public ContainerShop getShopByLocation(Location location) {
-        try (Connection connection = databaseManager.getConnection()) {
+    public Queue<ContainerShop> getShopsByLocation(Location location) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement queryShopStatement = connection.prepareStatement("SELECT * FROM shop WHERE world = ? AND x = ? AND y = ? AND z = ?");
             queryShopStatement.setString(1, location.getWorld().getName());
             queryShopStatement.setInt(2, location.getBlockX());
             queryShopStatement.setInt(3, location.getBlockY());
             queryShopStatement.setInt(4, location.getBlockZ());
-
-            queryShopStatement.setMaxRows(1);
             ResultSet resultSet = queryShopStatement.executeQuery();
 
-            Optional<ContainerShop> found = getshopQueueFromResults(resultSet).stream().findFirst();
-            return found.orElse(null);
+            return getShopQueueFromResults(resultSet);
         } catch (SQLException e) {
             return null;
         }
@@ -57,7 +61,7 @@ public class ContainerShopManager {
     }
 
     public boolean registerShop(ContainerShop shop) {
-        try (Connection connection = databaseManager.getConnection()) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement insertShopStatement = connection.prepareStatement("INSERT INTO shop (uuid, world, x, y, z, container_item, player_item, container_amount, player_amount) VALUES (?,?,?,?,?,?,?,?,?)");
             insertShopStatement.setString(1, shop.getShopOwner().getUniqueId().toString());
             insertShopStatement.setString(2, shop.getShopLocation().getWorld().getName());
@@ -76,7 +80,7 @@ public class ContainerShopManager {
     }
 
     public boolean deleteShop(Location location) {
-        try (Connection connection = databaseManager.getConnection()) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement deleteShopStatement = connection.prepareStatement("DELETE FROM shop WHERE world = ? AND x = ? and y = ? and z = ?");
             deleteShopStatement.setString(1, location.getWorld().getName());
             deleteShopStatement.setInt(2, location.getBlockX());
@@ -91,7 +95,7 @@ public class ContainerShopManager {
     }
 
     public Queue<ContainerShop> findShopsByItem(Material item, ContainerShopTransactionType type) {
-        try (Connection connection = databaseManager.getConnection()) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement shopQuery;
             switch (type) {
                 case BUY:
@@ -109,29 +113,31 @@ public class ContainerShopManager {
                     break;
             }
             ResultSet results = shopQuery.executeQuery();
-            return getshopQueueFromResults(results);
+            return getShopQueueFromResults(results);
         } catch (SQLException e) {
             return new PriorityQueue<>();
         }
     }
 
     public Queue<ContainerShop> findShopsByPlayer(OfflinePlayer shopOwner) {
-        try (Connection connection = databaseManager.getConnection()) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement shopQuery;
             shopQuery = connection.prepareStatement("SELECT * FROM shop WHERE uuid = ?");
             shopQuery.setString(1, shopOwner.getUniqueId().toString());
             ResultSet results = shopQuery.executeQuery();
-            return getshopQueueFromResults(results);
+            return getShopQueueFromResults(results);
         } catch (SQLException e) {
             return new PriorityQueue<>();
         }
     }
 
-    public Queue<ContainerShop> getshopQueueFromResults(ResultSet resultSet) throws SQLException {
+    public Queue<ContainerShop> getShopQueueFromResults(ResultSet resultSet) throws SQLException {
         Queue<ContainerShop> shopQueue = new PriorityQueue<>();
         while (resultSet.next()) {
             String uuid = resultSet.getString("uuid");
             OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
+            if (!showOfflinePlayerShops && !shopOwner.isOnline())
+                continue;
             Location shopLocation = new Location(Bukkit.getWorld(resultSet.getString("world")), resultSet.getInt("x"), resultSet.getInt("y"), resultSet.getInt("z"));
             Material containerItem = Material.getMaterial(resultSet.getString("container_item"));
             Material playerItem = Material.getMaterial(resultSet.getString("player_item"));
@@ -141,8 +147,16 @@ public class ContainerShopManager {
                 continue;
             }
             ContainerShop shop = new ContainerShop(shopOwner, shopLocation, containerItem, containerAmount, playerItem, playerAmount);
+            if (!showUnstockedPlayerShops && shop.getStock() == 0)
+                continue;
+
             shopQueue.add(shop);
         }
         return shopQueue;
+    }
+
+    public void loadConfigVariables() {
+        this.showOfflinePlayerShops = plugin.getConfig().getBoolean("show-offline-player-shops", true);
+        this.showUnstockedPlayerShops = plugin.getConfig().getBoolean("show-out-of-stock-shops", true);
     }
 }

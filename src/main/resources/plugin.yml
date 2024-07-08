@@ -3,22 +3,37 @@ version: '${version}'
 main: me.collinb.trustshops.TrustShops
 api-version: '1.20'
 author: 'collin-b1'
-description: Nonintrusive, trust-based player shops
+description: Unobtrusive, trust-based player shops
 commands:
-  createshop:
+  tscreate:
     description: Register a container shop
-    usage: /<command> <bought_item> <bought_quantity> [sold_item] [sold_quantity]
-    aliases: [tscreate]
-  deleteshop:
+    usage: /<command> <container_item> <container_amount> <player_item> <player_amount>
+    aliases: [ shopcreate ]
+  tsdelete:
     description: Unregister a container shop
     usage: /<command>
-    aliases: [tsdelete]
-  shops:
-    description: Find shops
-    usage: /<command> <buying/selling/player/info> [item/player]
-    aliases: [tsshops, shop]
+    aliases: [ shopdelete]
+  tsinfo:
+    description: Get information about a shop
+    usage: /<command>
+    aliases: [ shopinfo ]
+  tsfind:
+    description: Find shops for a specific item or by a player
+    usage: /<command> <buying|selling|player> <item|player>
+    aliases: [ shopfind ]
+  tsreload:
+    description: Reload TrustShops plugin
+    usage: /<command>
+    aliases: [ shopreload ]
+    permission: trustshops.tsreload
 
 permissions:
   trustshops.*:
     default: op
     description: Access to all TrustShop functions
+  trustshops.all:
+    default: op
+    description: Access to all TrustShop functions
+  trustshops.tsdelete.others:
+    default: op
+    description: Ability to delete other players shops

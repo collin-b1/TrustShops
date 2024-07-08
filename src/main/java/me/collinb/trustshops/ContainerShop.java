@@ -2,6 +2,7 @@ package me.collinb.trustshops;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
@@ -91,18 +92,40 @@ public class ContainerShop implements Comparable<ContainerShop> {
         return Component.text("[").color(NamedTextColor.DARK_GRAY)
                 .append(Component.text(Objects.requireNonNull(getShopOwner().getName())).color(NamedTextColor.GRAY))
                 .append(Component.text("] ").color(NamedTextColor.DARK_GRAY))
-                .append(Component.text(getContainerAmount()).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+                .append(Component.text(getContainerAmount())
+                        .color(NamedTextColor.YELLOW)
+                        .decorate(TextDecoration.BOLD)
+                )
                 .append(Component.text("x").color(NamedTextColor.DARK_GRAY))
-                .append(Component.text(getContainerItem().name()).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD))
+                .append(Component.text(getContainerItem().name())
+                        .color(NamedTextColor.GOLD)
+                        .decorate(TextDecoration.BOLD)
+                        .hoverEvent(HoverEvent.showItem(
+                                getContainerItem().key(),
+                                getContainerAmount()
+                        ))
+                )
                 .append(Component.text(" for ").color(NamedTextColor.DARK_GRAY))
-                .append(Component.text(getPlayerAmount()).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
+                .append(Component.text(getPlayerAmount())
+                        .color(NamedTextColor.YELLOW)
+                        .decorate(TextDecoration.BOLD)
+                )
                 .append(Component.text("x").color(NamedTextColor.DARK_GRAY))
-                .append(Component.text(getPlayerItem().name()).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD))
+                .append(Component.text(getPlayerItem().name())
+                        .color(NamedTextColor.GOLD)
+                        .decorate(TextDecoration.BOLD)
+                        .hoverEvent(HoverEvent.showItem(
+                                getPlayerItem().key(),
+                                getPlayerAmount()
+                        ))
+                )
                 .append(Component.text(" [").color(NamedTextColor.DARK_GRAY))
                 .append(Component.text("Stock: ").color(NamedTextColor.GRAY))
                 .append(Component.text(getStock()).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
-                .append(Component.text(String.format("] (%d, %d)", getShopLocation().getBlockX(), getShopLocation().getBlockZ()))
-                        .color(NamedTextColor.DARK_GRAY));
+                .append(Component.text(String.format("] (%d, %d)",
+                        getShopLocation().getBlockX(),
+                        getShopLocation().getBlockZ())).color(NamedTextColor.DARK_GRAY)
+                );
     }
 
     public void updateStock() {

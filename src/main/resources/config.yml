@@ -1,4 +1,39 @@
+# Worlds where shops cannot be created
+disabled-worlds:
+  - disabled_world
+
+# Maximum shops that can be displayed on one page
+max-shops-per-page: 10
+
+# Show shops by offline players on search
+show-offline-player-shops: true
+
+# Show stocks with no stock on search
+show-out-of-stock-shops: true
+
+# Controls the maximum and minimum quantity a shop can buy
+min-buying-amount: 1
+max-buying-amount: 3456
+
+# Controls the maximum and minimum quantity a shop can sell
+min-selling-amount: 1
+max-selling-amount: 3456
+
+# Shop will be unregistered when container is destroyed
+delete-shop-on-destroy: true
+
+# Shops will be unregistered when the shop owner is banned
+delete-shops-on-ban: false
+
+# Permitted containers for shops. Uses Bukkit Material names
 allowed-containers:
   - CHEST
   - TRAPPED_CHEST
   - BARREL
+
+# Banned items for shops. Uses Bukkit Material names
+banned-items:
+  - AIR
+  - STRUCTURE_BLOCK
+  - STRUCTURE_VOID
+  - BARRIER
