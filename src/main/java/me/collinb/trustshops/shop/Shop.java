@@ -1,6 +1,5 @@
-package me.collinb.trustshops;
+package me.collinb.trustshops.shop;
 
-import me.collinb.trustshops.managers.ContainerShopManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -16,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public class ContainerShop implements Comparable<ContainerShop> {
+public class Shop implements Comparable<Shop> {
     // Owner of the shop
     private final OfflinePlayer shopOwner;
 
@@ -38,7 +37,7 @@ public class ContainerShop implements Comparable<ContainerShop> {
     // Amount of sold stacks remaining
     private int stock;
 
-    public ContainerShop(@NotNull OfflinePlayer shopOwner, @NotNull Location shopLocation, @NotNull Material containerItem, int containerAmount, @NotNull Material playerItem, int playerAmount) {
+    public Shop(@NotNull OfflinePlayer shopOwner, @NotNull Location shopLocation, @NotNull Material containerItem, int containerAmount, @NotNull Material playerItem, int playerAmount) {
         this.shopOwner = shopOwner;
         this.shopLocation = shopLocation;
         this.containerItem = containerItem;
@@ -48,7 +47,7 @@ public class ContainerShop implements Comparable<ContainerShop> {
         updateStock();
     }
 
-    public ContainerShop(@NotNull OfflinePlayer shopOwner, @NotNull Material containerItem, int containerAmount, @NotNull Material playerItem, int playerAmount) {
+    public Shop(@NotNull OfflinePlayer shopOwner, @NotNull Material containerItem, int containerAmount, @NotNull Material playerItem, int playerAmount) {
         this.shopOwner = shopOwner;
         this.containerItem = containerItem;
         this.containerAmount = containerAmount;
@@ -89,8 +88,8 @@ public class ContainerShop implements Comparable<ContainerShop> {
         return this.stock;
     }
 
-    public TextComponent getDisplayLine() {
-        return Component.text("[").color(NamedTextColor.DARK_GRAY)
+    public TextComponent getDisplayLine(boolean showStock, boolean showLocation) {
+        TextComponent textComponent = Component.text("[").color(NamedTextColor.DARK_GRAY)
                 .append(Component.text(Objects.requireNonNull(getShopOwner().getName())).color(NamedTextColor.GRAY))
                 .append(Component.text("] ").color(NamedTextColor.DARK_GRAY))
                 .append(Component.text(getContainerAmount())
@@ -119,14 +118,34 @@ public class ContainerShop implements Comparable<ContainerShop> {
                                 getPlayerItem().key(),
                                 getPlayerAmount()
                         ))
-                )
-                .append(Component.text(" [").color(NamedTextColor.DARK_GRAY))
-                .append(Component.text("Stock: ").color(NamedTextColor.GRAY))
-                .append(Component.text(getStock()).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD))
-                .append(Component.text(String.format("] (%d, %d)",
-                        getShopLocation().getBlockX(),
-                        getShopLocation().getBlockZ())).color(NamedTextColor.DARK_GRAY)
                 );
+        if (showStock || showLocation) {
+            textComponent = textComponent.append(Component.text("\n╚ ").color(NamedTextColor.DARK_GRAY));
+            if (showStock) {
+                textComponent = textComponent.append(Component.text("[").color(NamedTextColor.DARK_GRAY))
+                        .append(Component.text("Stock: ").color(NamedTextColor.DARK_GRAY))
+                        .append(Component.text(getStock()).color(NamedTextColor.DARK_GRAY).decorate(TextDecoration.BOLD))
+                        .append(Component.text("] "));
+            }
+            if (showLocation) {
+                String dimension = switch (getShopLocation().getWorld().getEnvironment()) {
+                    case NORMAL -> "Overworld";
+                    case NETHER -> "Nether";
+                    case THE_END -> "The End";
+                    default -> getShopLocation().getWorld().getName();
+                };
+                textComponent = textComponent.append(Component.text(String.format("%s (%d, %d, %d)",
+                        dimension,
+                        getShopLocation().getBlockX(),
+                        getShopLocation().getBlockY(),
+                        getShopLocation().getBlockZ()
+                        )).color(NamedTextColor.DARK_GRAY)
+                );
+            }
+        }
+
+
+        return textComponent;
     }
 
     public void updateStock() {
@@ -153,19 +172,32 @@ public class ContainerShop implements Comparable<ContainerShop> {
     }
 
     @Override
-    public int compareTo(@NotNull ContainerShop o) {
-        switch (ContainerShopManager.shopSortType) {
-            case STOCK -> {
-                return Integer.compare(getTotalForSale(), o.getTotalForSale());
-            }
-            case DISTANCE -> {
-                int aDistance = (int) getShopLocation().distance(getShopLocation().getWorld().getSpawnLocation());
-                int bDistance = (int) o.getShopLocation().distance(o.getShopLocation().getWorld().getSpawnLocation());
-                return Integer.compare(aDistance, bDistance);
-            }
-            default -> {
-                return Integer.compare(getContainerAmount() / getPlayerAmount(), o.getContainerAmount() / o.getPlayerAmount());
-            }
-        }
+    public int compareTo(@NotNull Shop o) {
+        return Integer.compare(o.getTotalForSale(), getTotalForSale());
+    }
+
+    // Only one shop selling an item X for an item Y can exist at location Z
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || o.getClass() != this.getClass()) return false;
+        Shop shop = (Shop)o;
+        return shopLocation.equals(shop.getShopLocation())
+                && containerItem.equals(shop.getContainerItem())
+                && playerItem.equals(shop.getPlayerItem());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(shopLocation, containerItem, playerItem);
+    }
+
+    @Override
+    public String toString() {
+        return "ContainerShop{" +
+                "shopLocation=" + shopLocation +
+                ", playerItem='" + playerItem + '\'' +
+                ", containerItem='" + containerItem + '\'' +
+                '}';
     }
 }

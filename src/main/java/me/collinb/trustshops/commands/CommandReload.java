@@ -6,6 +6,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import static org.bukkit.Bukkit.permissionMessage;
+
 public class CommandReload implements CommandExecutor {
     private final TrustShops plugin;
 
@@ -15,7 +17,7 @@ public class CommandReload implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
         if (!commandSender.hasPermission("trustshops.tsreload")) {
-            plugin.getChatManager().fail(commandSender, "You do not have permission to reload the plugin.");
+            commandSender.sendMessage(permissionMessage());
             return true;
         }
         plugin.reload();

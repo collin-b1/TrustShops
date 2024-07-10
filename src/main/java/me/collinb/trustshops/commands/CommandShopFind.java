@@ -1,10 +1,10 @@
 package me.collinb.trustshops.commands;
 
-import me.collinb.trustshops.ContainerShop;
 import me.collinb.trustshops.TrustShops;
-import me.collinb.trustshops.enums.ContainerShopTransactionType;
-import me.collinb.trustshops.utils.TabHelper;
+import me.collinb.trustshops.shop.Shop;
+import me.collinb.trustshops.shop.ShopTransactionType;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -18,7 +18,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
 
 public class CommandShopFind implements CommandExecutor, TabCompleter {
     private static final String[] SUBCOMMANDS = {"buying", "selling", "player"};
@@ -34,43 +33,84 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        int page = args.length < 3 ? 1 : Integer.parseInt(args[2]);
+        List<Shop> shops;
+        boolean pageArgumentIncluded = false;
+        int page = 1;
 
-        Queue<ContainerShop> shopQueue;
         switch (args[0].toLowerCase()) {
             case "buying": {
+                if (args.length >= 3) {
+                    page = Integer.parseInt(args[2]);
+                            pageArgumentIncluded = true;
+                }
+
                 Material item = Material.getMaterial(args[1].toUpperCase().replace("MINECRAFT:", ""));
                 if (item == null) {
                     commandSender.sendMessage("Invalid item: " + args[1]);
                     plugin.getChatManager().fail(commandSender, "Invalid item: " + args[1]);
                     return true;
                 }
-                shopQueue = plugin.getShopManager().findShopsByItem(item, ContainerShopTransactionType.BUY);
+                shops = plugin.getDatabaseManager().findShopsByItem(item, ShopTransactionType.BUY);
                 break;
             }
             case "selling": {
+                if (args.length >= 3) {
+                    page = Integer.parseInt(args[2]);
+                    pageArgumentIncluded = true;
+                }
+
                 Material item = Material.getMaterial(args[1].toUpperCase().replace("MINECRAFT:", ""));
                 if (item == null) {
                     plugin.getChatManager().fail(commandSender, "Invalid item: " + args[1]);
                     return false;
                 }
-                shopQueue = plugin.getShopManager().findShopsByItem(item, ContainerShopTransactionType.SELL);
+                shops = plugin.getDatabaseManager().findShopsByItem(item, ShopTransactionType.SELL);
                 break;
             }
             case "player": {
+                if (args.length >= 3) {
+                    page = Integer.parseInt(args[2]);
+                    pageArgumentIncluded = true;
+                }
                 OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(args[1]);
                 if (!shopOwner.hasPlayedBefore()) {
                     plugin.getChatManager().fail(commandSender, "Invalid player: " + args[1]);
                     return true;
                 }
-                shopQueue = plugin.getShopManager().findShopsByPlayer(shopOwner);
+                shops = plugin.getDatabaseManager().findShopsByPlayer(shopOwner);
+                break;
+            }
+            case "location": {
+                if (args.length >= 5) {
+                    page = Integer.parseInt(args[4]);
+                    pageArgumentIncluded = true;
+                }
+                if (!(commandSender instanceof Player player)) {
+                    plugin.getChatManager().fail(commandSender, "Finding shop by location can only be used by in-game players.");
+                    return true;
+                }
+                if (args.length < 4) {
+                    return false;
+                }
+
+                int x = Integer.parseInt(args[1]);
+                int y = Integer.parseInt(args[2]);
+                int z = Integer.parseInt(args[3]);
+
+                Location location = new Location(player.getWorld(), x, y, z);
+                shops = plugin.getDatabaseManager().findShopsByLocation(location);
                 break;
             }
             default: {
                 return false;
             }
         }
-        plugin.getChatManager().sendShops(shopQueue, commandSender, page);
+        List<@NotNull String> argsList = new ArrayList<>(List.of(args));
+        if (pageArgumentIncluded) {
+            argsList.remove(argsList.size() - 1);
+        }
+        String commandString = String.format("/%s %s", command.getLabel(), String.join(" ", String.join(" ", argsList)));
+        plugin.getChatManager().sendShops(shops, commandSender, commandString, page);
 
         return true;
     }
@@ -85,7 +125,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
             return completions;
         } else if (strings.length == 2) {
             if (strings[0].equals("buying") || strings[0].equals("selling")) {
-                return TabHelper.getTabCompleteItems(strings, ((Player) commandSender).getWorld());
+                return plugin.getChatManager().getTabCompleteItems(strings, ((Player) commandSender).getWorld());
             } else {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             }

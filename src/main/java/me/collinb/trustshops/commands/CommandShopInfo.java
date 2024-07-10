@@ -1,7 +1,7 @@
 package me.collinb.trustshops.commands;
 
 import me.collinb.trustshops.TrustShops;
-import me.collinb.trustshops.enums.ContainerShopModificationType;
+import me.collinb.trustshops.shop.ShopModificationType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -21,7 +21,7 @@ public class CommandShopInfo implements CommandExecutor {
             return true;
         }
 
-        if (plugin.getShopManager().awaitInteraction(player, null, ContainerShopModificationType.INFO)) {
+        if (plugin.getPluginConfig().awaitInteraction(player, null, ShopModificationType.INFO)) {
             plugin.getChatManager().info(commandSender, "Interact with a valid container to view its shops");
         } else {
             plugin.getChatManager().fail(commandSender, "Info failed: Already pending shop action!");

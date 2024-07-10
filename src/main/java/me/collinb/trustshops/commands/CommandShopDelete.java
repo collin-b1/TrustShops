@@ -1,7 +1,7 @@
 package me.collinb.trustshops.commands;
 
 import me.collinb.trustshops.TrustShops;
-import me.collinb.trustshops.enums.ContainerShopModificationType;
+import me.collinb.trustshops.shop.ShopModificationType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -22,7 +22,7 @@ public class CommandShopDelete implements CommandExecutor {
             return true;
         }
 
-        if (plugin.getShopManager().awaitInteraction(player, null, ContainerShopModificationType.DELETE)) {
+        if (plugin.getPluginConfig().awaitInteraction(player, null, ShopModificationType.DELETE)) {
             plugin.getChatManager().warning(player, "Interact with a valid shop to delete.");
         } else {
             plugin.getChatManager().fail(player, "Deletion failed: Already pending shop action!");

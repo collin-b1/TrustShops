@@ -1,50 +1,83 @@
 package me.collinb.trustshops.managers;
 
-import me.collinb.trustshops.ContainerShop;
 import me.collinb.trustshops.TrustShops;
+import me.collinb.trustshops.shop.Shop;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
+import java.util.stream.Collectors;
 
 public class ChatManager {
     private final TrustShops plugin;
-    private int shopsPerPage;
 
     public ChatManager(TrustShops plugin) {
         this.plugin = plugin;
-        loadConfigVariables();
     }
 
     public TextComponent getDisplayHeader() {
-        return Component.text("=======<").color(NamedTextColor.DARK_GRAY)
+        return Component.text("----- ").color(NamedTextColor.DARK_GRAY)
                 .append(Component.text("TrustShops").color(NamedTextColor.AQUA))
-                .append(Component.text(">=======").color(NamedTextColor.DARK_GRAY));
+                .append(Component.text(" -----").color(NamedTextColor.DARK_GRAY));
     }
 
-    public TextComponent getDisplayFooter() {
-        return Component.text("=========================").color(NamedTextColor.DARK_GRAY);
+    public TextComponent getDisplayFooter(String commandString, int page, int totalPages) {
+        String prevPageCommand = String.format("%s %d", commandString, page - 1);
+        String nextPageCommand = String.format("%s %d", commandString, page + 1);
+
+        TextComponent component = Component.empty();
+
+        if (page > 1) {
+            component = component.append(Component.text("◀ ")
+                    .color(NamedTextColor.WHITE).decorate(TextDecoration.BOLD)
+                    .hoverEvent(HoverEvent.showText(Component.text(prevPageCommand)))
+                    .clickEvent(ClickEvent.runCommand(prevPageCommand))
+            );
+        }
+
+        component = component.append(Component.text(String.format("Page %d of %d", page, totalPages))
+                .color(NamedTextColor.GRAY)
+        );
+
+        if (page < totalPages) {
+            component = component.append(Component.text(" ▶")
+                    .color(NamedTextColor.WHITE).decorate(TextDecoration.BOLD)
+                    .hoverEvent(HoverEvent.showText(Component.text(nextPageCommand)))
+                    .clickEvent(ClickEvent.runCommand(nextPageCommand))
+            );
+        }
+        return component;
     }
 
-    public void sendShops(Queue<ContainerShop> shopSet, CommandSender player, int page) {
+    public void sendShops(List<Shop> shops, CommandSender player, String commandString, int page) {
+        int shopsPerPage = plugin.getPluginConfig().getShopsPerPage();
         int startingIndex = (page - 1) * shopsPerPage;
 
         player.sendMessage(getDisplayHeader());
+        Collections.sort(shops);
 
-        List<ContainerShop> shopList = shopSet.stream().toList();
-        if (startingIndex < shopList.size()) {
-            Iterator<ContainerShop> iterator = shopSet.stream().toList().listIterator(startingIndex);
-            for (int i = startingIndex; i < (startingIndex + shopsPerPage) && iterator.hasNext(); ++i) {
-                ContainerShop shop = iterator.next();
-                player.sendMessage(shop.getDisplayLine());
+        int totalPages = (int) Math.ceil((double) shops.size() / shopsPerPage);
+        boolean showStock = player.hasPermission("trustshops.seeshopstock");
+        boolean showLocation = player.hasPermission("trustshops.seeshoplocation");
+
+        if (startingIndex >= 0 && startingIndex < shops.size()) {
+            for (int i = startingIndex; i < (startingIndex + shopsPerPage) && i < shops.size(); ++i) {
+                Shop shop = shops.get(i);
+                player.sendMessage(shop.getDisplayLine(showStock, showLocation));
             }
         }
 
-        player.sendMessage(getDisplayFooter());
+        player.sendMessage(getDisplayFooter(commandString, page, totalPages));
     }
 
     public Component getLabel() {
@@ -67,7 +100,14 @@ public class ChatManager {
         player.sendMessage(getLabel().append(Component.text(message).color(NamedTextColor.RED)));
     }
 
-    public void loadConfigVariables() {
-        this.shopsPerPage = plugin.getConfig().getInt("max-shops-per-page", 10);
+    public List<String> getTabCompleteItems(@NotNull String[] strings, @NotNull World world) {
+        String partialItem = strings[strings.length - 1].toUpperCase().replace("MINECRAFT:", "");
+        return Arrays.stream(Material.values())
+                .filter(material -> material.isEnabledByFeature(world))
+                .filter(plugin::isValidShopItem)
+                .map(material -> "minecraft:" + material.toString().toLowerCase())
+                .filter(name -> name.startsWith("minecraft:" + partialItem.toLowerCase()))
+                .sorted()
+                .collect(Collectors.toList());
     }
 }

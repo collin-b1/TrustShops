@@ -1,9 +1,11 @@
 package me.collinb.trustshops.listeners;
 
-import me.collinb.trustshops.ContainerShop;
-import me.collinb.trustshops.ContainerShopPendingAction;
 import me.collinb.trustshops.TrustShops;
+import me.collinb.trustshops.config.Config;
+import me.collinb.trustshops.shop.Shop;
+import me.collinb.trustshops.shop.ShopPendingAction;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,19 +14,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 
 public class PlayerListener implements Listener {
     private final TrustShops plugin;
-    private boolean destroyUnregistersShop;
+    private final Config config;
 
     public PlayerListener(TrustShops plugin) {
         this.plugin = plugin;
-        loadConfigVariables();
+        this.config = plugin.getPluginConfig();
     }
 
     @EventHandler(priority = EventPriority.LOW)
@@ -43,13 +46,22 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        boolean destroyUnregistersShop = config.deleteShopsOnDestroy();
         if (destroyUnregistersShop) {
             Block destroyedBlock = event.getBlock();
-            if (TrustShops.ALLOWED_CONTAINERS.contains(destroyedBlock.getType())) {
+            if (config.getAllowedContainers().contains(destroyedBlock.getType())) {
                 Location location = destroyedBlock.getLocation();
-                Queue<ContainerShop> shops = plugin.getShopManager().getShopsByLocation(location);
-                for (ContainerShop shop : shops) {
-                    plugin.getShopManager().deleteShop(shop.getShopLocation());
+                List<Shop> shops = plugin.getDatabaseManager().findShopsByLocation(location);
+                for (Shop shop : shops) {
+                    if (shop.getShopOwner().equals(player)) {
+                        plugin.getDatabaseManager().deleteShop(shop.getShopLocation());
+                    } else {
+                        Player shopOwner = shop.getShopOwner().getPlayer();
+                        if (shopOwner != null) {
+                            plugin.getChatManager().warning(shopOwner, String.format("Your shop at %s was destroyed by %s!", shop.getShopLocation().toString(), player.getName()));
+                        }
+                    }
                 }
             }
         }
@@ -57,7 +69,20 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        plugin.getShopManager().popPendingInteraction(event.getPlayer());
+        config.popPendingInteraction(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onPlayerKick(PlayerKickEvent event) {
+        if (config.deleteShopsOnBan()) {
+            if (event.getCause() == PlayerKickEvent.Cause.BANNED || event.getCause() == PlayerKickEvent.Cause.IP_BANNED) {
+                OfflinePlayer bannedPlayer = event.getPlayer();
+                List<Shop> shops = plugin.getDatabaseManager().findShopsByPlayer(bannedPlayer);
+                for (Shop shop : shops) {
+                    plugin.getDatabaseManager().deleteShop(shop.getShopLocation());
+                }
+            }
+        }
     }
 
     /**
@@ -68,27 +93,27 @@ public class PlayerListener implements Listener {
      * @return If the event should be canceled
      */
     public boolean handleShopAction(@NotNull Player player, @NotNull Block block) {
-        ContainerShopPendingAction action = plugin.getShopManager().popPendingInteraction(player);
+        ShopPendingAction action = config.popPendingInteraction(player);
         if (action != null) {
-            if (TrustShops.ALLOWED_CONTAINERS.contains(block.getType())) {
+            if (config.getAllowedContainers().contains(block.getType())) {
                 switch (action.type()) {
                     case CREATE -> {
-                        ContainerShop shop = action.shop();
+                        Shop shop = action.shop();
                         shop.setShopLocation(block.getLocation());
-                        if (plugin.getShopManager().registerShop(shop)) {
+                        if (plugin.getDatabaseManager().registerShop(shop)) {
                             plugin.getChatManager().success(player, "Registered shop!");
                         } else {
                             plugin.getChatManager().fail(player, "Failed to register shop!");
                         }
                     }
                     case DELETE -> {
-                        Queue<ContainerShop> shops = plugin.getShopManager().getShopsByLocation(block.getLocation());
+                        List<Shop> shops = plugin.getDatabaseManager().findShopsByLocation(block.getLocation());
                         if (shops.isEmpty()) {
                             plugin.getChatManager().fail(player, "Not a valid shop!");
                             return true;
                         }
 
-                        for (ContainerShop shop : shops) {
+                        for (Shop shop : shops) {
                             if (!Objects.equals(shop.getShopOwner().getPlayer(), player)) {
                                 if (!player.hasPermission("trustshops.tsdelete.others")) {
                                     plugin.getChatManager().fail(player, "You can't delete someone else's shop!");
@@ -96,7 +121,7 @@ public class PlayerListener implements Listener {
                                 }
                             }
 
-                            if (plugin.getShopManager().deleteShop(block.getLocation())) {
+                            if (plugin.getDatabaseManager().deleteShop(block.getLocation())) {
                                 plugin.getChatManager().success(player, "Deleted shop!");
                             } else {
                                 plugin.getChatManager().fail(player, "Failed to delete shop!");
@@ -104,9 +129,10 @@ public class PlayerListener implements Listener {
                         }
                     }
                     case INFO -> {
-                        Queue<ContainerShop> shops = plugin.getShopManager().getShopsByLocation(block.getLocation());
+                        List<Shop> shops = plugin.getDatabaseManager().findShopsByLocation(block.getLocation());
                         if (!shops.isEmpty()) {
-                            plugin.getChatManager().sendShops(shops, player, 1);
+                            String commandString = String.format("/%s location %d %d %d", plugin.getCommand("tsfind").getLabel(), block.getX(), block.getY(), block.getZ());
+                            plugin.getChatManager().sendShops(shops, player, commandString, 1);
                         } else {
                             plugin.getChatManager().fail(player, "Not a valid shop!");
                         }
@@ -119,9 +145,5 @@ public class PlayerListener implements Listener {
             }
         }
         return false;
-    }
-
-    public void loadConfigVariables() {
-        this.destroyUnregistersShop = plugin.getConfig().getBoolean("delete-shop-on-destroy", true);
     }
 }
