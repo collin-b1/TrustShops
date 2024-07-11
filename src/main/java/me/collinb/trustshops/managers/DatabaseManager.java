@@ -144,25 +144,40 @@ public class DatabaseManager {
     }
 
     public List<Shop> getShopListFromResults(ResultSet resultSet) throws SQLException {
+        boolean showOfflinePlayerShops = plugin.getPluginConfig().showOfflinePlayerShops();
+        boolean showUnstockedPlayerShops = plugin.getPluginConfig().showUnstockedPlayerShops();
+        boolean deleteShopsOnBan = plugin.getPluginConfig().deleteShopsOnBan();
+
         ArrayList<Shop> shops = new ArrayList<>();
         while (resultSet.next()) {
             String uuid = resultSet.getString("uuid");
             OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
-            boolean showOfflinePlayerShops = plugin.getPluginConfig().showOfflinePlayerShops();
-            boolean showUnstockedPlayerShops = plugin.getPluginConfig().showUnstockedPlayerShops();
-            if (!showOfflinePlayerShops && !shopOwner.isOnline())
+
+            if (deleteShopsOnBan) {
+                if (shopOwner.isBanned()) {
+                    resultSet.deleteRow();
+                    continue;
+                }
+            }
+
+            if (!showOfflinePlayerShops && !shopOwner.isOnline()) {
                 continue;
+            }
+
             Location shopLocation = new Location(Bukkit.getWorld(resultSet.getString("world")), resultSet.getInt("x"), resultSet.getInt("y"), resultSet.getInt("z"));
             Material containerItem = Material.getMaterial(resultSet.getString("container_item"));
             Material playerItem = Material.getMaterial(resultSet.getString("player_item"));
             int containerAmount = resultSet.getInt("container_amount");
             int playerAmount = resultSet.getInt("player_amount");
+
             if (containerItem == null || playerItem == null) {
                 continue;
             }
+
             Shop shop = new Shop(shopOwner, shopLocation, containerItem, containerAmount, playerItem, playerAmount);
-            if (!showUnstockedPlayerShops && shop.getStock() == 0)
+            if (!showUnstockedPlayerShops && shop.getStock() == 0) {
                 continue;
+            }
 
             shops.add(shop);
         }

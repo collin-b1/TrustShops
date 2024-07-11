@@ -5,7 +5,6 @@ import me.collinb.trustshops.config.Config;
 import me.collinb.trustshops.shop.Shop;
 import me.collinb.trustshops.shop.ShopPendingAction;
 import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,7 +13,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -69,17 +67,15 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        config.popPendingInteraction(event.getPlayer());
-    }
-
-    @EventHandler
-    public void onPlayerKick(PlayerKickEvent event) {
+        Player player = event.getPlayer();
+        config.popPendingInteraction(player);
         if (config.deleteShopsOnBan()) {
-            if (event.getCause() == PlayerKickEvent.Cause.BANNED || event.getCause() == PlayerKickEvent.Cause.IP_BANNED) {
-                OfflinePlayer bannedPlayer = event.getPlayer();
-                List<Shop> shops = plugin.getDatabaseManager().findShopsByPlayer(bannedPlayer);
-                for (Shop shop : shops) {
-                    plugin.getDatabaseManager().deleteShop(shop.getShopLocation());
+            if (event.getReason() == PlayerQuitEvent.QuitReason.KICKED) {
+                if (player.isBanned()) {
+                    List<Shop> shops = plugin.getDatabaseManager().findShopsByPlayer(player);
+                    for (Shop shop : shops) {
+                        plugin.getDatabaseManager().deleteShop(shop.getShopLocation());
+                    }
                 }
             }
         }
