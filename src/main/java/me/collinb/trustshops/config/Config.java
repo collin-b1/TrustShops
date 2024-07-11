@@ -10,10 +10,7 @@ import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Config {
@@ -156,6 +153,7 @@ public class Config {
             bannedWorlds = pluginConfig.getStringList("disabled-worlds")
                     .stream()
                     .map(worldName -> plugin.getServer().getWorld(worldName))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.collectingAndThen(
                             Collectors.toSet(),
                             ImmutableSet::copyOf

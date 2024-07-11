@@ -57,6 +57,16 @@ public class DatabaseManager {
         }
     }
 
+    public boolean closeConnection() {
+        try {
+            getConnection().close();
+            return true;
+        } catch (SQLException e) {
+            plugin.getLogger().warning(e.getMessage());
+            return false;
+        }
+    }
+
     public List<Shop> findShopsByLocation(Location location) {
         try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement queryShopStatement = connection.prepareStatement("SELECT * FROM " + TABLE_PREFIX + "shop WHERE world = ? AND x = ? AND y = ? AND z = ?");
@@ -91,21 +101,72 @@ public class DatabaseManager {
         }
     }
 
-    public boolean deleteShop(Location location) {
+    /**
+     * Delete a specific shop matching a Shop object.
+     * @param shop Shop to delete
+     * @return
+     */
+    public boolean deleteShop(Shop shop) {
         try (Connection connection = plugin.getDatabaseManager().getConnection()) {
-            PreparedStatement deleteShopStatement = connection.prepareStatement("DELETE FROM " + TABLE_PREFIX + "shop WHERE world = ? AND x = ? and y = ? and z = ?");
-            deleteShopStatement.setString(1, location.getWorld().getName());
-            deleteShopStatement.setInt(2, location.getBlockX());
-            deleteShopStatement.setInt(3, location.getBlockY());
-            deleteShopStatement.setInt(4, location.getBlockZ());
+            Location location = shop.getShopLocation();
+            PreparedStatement deleteShopStatement = connection.prepareStatement("DELETE FROM " + TABLE_PREFIX + "shop WHERE uuid = ? and world = ? AND x = ? AND y = ? AND z = ? AND player_item = ? AND container_item = ? AND player_amount = ? AND container_amount = ?");
+            deleteShopStatement.setString(1, shop.getShopOwner().getUniqueId().toString());
+            deleteShopStatement.setString(2, location.getWorld().getName());
+            deleteShopStatement.setInt(3, location.getBlockX());
+            deleteShopStatement.setInt(4, location.getBlockY());
+            deleteShopStatement.setInt(5, location.getBlockZ());
+            deleteShopStatement.setString(6, shop.getPlayerItem().toString());
+            deleteShopStatement.setString(7, shop.getContainerItem().toString());
+            deleteShopStatement.setInt(8, shop.getPlayerAmount());
+            deleteShopStatement.setInt(9, shop.getContainerAmount());
 
             deleteShopStatement.executeUpdate();
+            deleteShopStatement.close();
             return true;
         } catch (SQLException e) {
             return false;
         }
     }
 
+    /**
+     * Delete ALL shops at a specific location (block).
+     * @param location Location of the container
+     * @return Number of shops deleted
+     */
+    public int deleteShopsByLocation(Location location) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
+            PreparedStatement deleteShopStatement = connection.prepareStatement("DELETE FROM " + TABLE_PREFIX + "shop WHERE world = ? AND x = ? AND y = ? AND z = ?");
+            deleteShopStatement.setString(1, location.getWorld().getName());
+            deleteShopStatement.setInt(2, location.getBlockX());
+            deleteShopStatement.setInt(3, location.getBlockY());
+            deleteShopStatement.setInt(4, location.getBlockZ());
+            return deleteShopStatement.executeUpdate();
+        } catch (SQLException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Delete ALL shops owned by a specific player.
+     * @param player Player to have shops deleted for
+     * @return Number of shops deleted
+     */
+    public int deleteShopsByPlayer(OfflinePlayer player) {
+        try (Connection connection = plugin.getDatabaseManager().getConnection()) {
+            PreparedStatement deleteShopStatement = connection.prepareStatement("DELETE FROM " + TABLE_PREFIX + "shop WHERE uuid = ?");
+            deleteShopStatement.setString(1, player.getUniqueId().toString());
+            return deleteShopStatement.executeUpdate();
+        } catch (SQLException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get a list of shops buying or selling a specific item
+     * @param item Item to be searched for
+     * @param type Query type: either BUY or SELL
+     * @return List of Shops buying or selling a specific item. Not paginated and in all worlds
+     */
     public List<Shop> findShopsByItem(Material item, ShopTransactionType type) {
         try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement shopQuery;
@@ -131,6 +192,11 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Get a list of shops owned by a Player
+     * @param shopOwner Owner of the shops
+     * @return List of Shops owned by the given player. Not paginated and includes all worlds
+     */
     public List<Shop> findShopsByPlayer(OfflinePlayer shopOwner) {
         try (Connection connection = plugin.getDatabaseManager().getConnection()) {
             PreparedStatement shopQuery;
@@ -143,6 +209,11 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     *
+     * @param resultSet ResultSet from a SQL query on the shop table
+     * @return List of shop objects created from the ResultShop
+     */
     public List<Shop> getShopListFromResults(ResultSet resultSet) throws SQLException {
         boolean showOfflinePlayerShops = plugin.getPluginConfig().showOfflinePlayerShops();
         boolean showUnstockedPlayerShops = plugin.getPluginConfig().showUnstockedPlayerShops();
@@ -152,17 +223,6 @@ public class DatabaseManager {
         while (resultSet.next()) {
             String uuid = resultSet.getString("uuid");
             OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(UUID.fromString(uuid));
-
-            if (deleteShopsOnBan) {
-                if (shopOwner.isBanned()) {
-                    resultSet.deleteRow();
-                    continue;
-                }
-            }
-
-            if (!showOfflinePlayerShops && !shopOwner.isOnline()) {
-                continue;
-            }
 
             Location shopLocation = new Location(Bukkit.getWorld(resultSet.getString("world")), resultSet.getInt("x"), resultSet.getInt("y"), resultSet.getInt("z"));
             Material containerItem = Material.getMaterial(resultSet.getString("container_item"));
@@ -174,8 +234,24 @@ public class DatabaseManager {
                 continue;
             }
 
+            // Create new shop object for this shop
             Shop shop = new Shop(shopOwner, shopLocation, containerItem, containerAmount, playerItem, playerAmount);
+
+            // This is necessary for when a player is offline and doesn't get caught by PlayerQuitEvent.
+            if (deleteShopsOnBan) {
+                if (shopOwner.isBanned()) {
+                    plugin.getDatabaseManager().deleteShop(shop);
+                    continue;
+                }
+            }
+
+            // If shops shouldn't be shown when unstocked, skip this shop
             if (!showUnstockedPlayerShops && shop.getStock() == 0) {
+                continue;
+            }
+
+            // If shops shouldn't be shown when offline, skip this shop
+            if (!showOfflinePlayerShops && !shopOwner.isOnline()) {
                 continue;
             }
 

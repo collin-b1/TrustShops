@@ -53,7 +53,7 @@ public class PlayerListener implements Listener {
                 List<Shop> shops = plugin.getDatabaseManager().findShopsByLocation(location);
                 for (Shop shop : shops) {
                     if (shop.getShopOwner().equals(player)) {
-                        plugin.getDatabaseManager().deleteShop(shop.getShopLocation());
+                        plugin.getDatabaseManager().deleteShopsByLocation(shop.getShopLocation());
                     } else {
                         Player shopOwner = shop.getShopOwner().getPlayer();
                         if (shopOwner != null) {
@@ -72,10 +72,7 @@ public class PlayerListener implements Listener {
         if (config.deleteShopsOnBan()) {
             if (event.getReason() == PlayerQuitEvent.QuitReason.KICKED) {
                 if (player.isBanned()) {
-                    List<Shop> shops = plugin.getDatabaseManager().findShopsByPlayer(player);
-                    for (Shop shop : shops) {
-                        plugin.getDatabaseManager().deleteShop(shop.getShopLocation());
-                    }
+                    plugin.getDatabaseManager().deleteShopsByPlayer(player);
                 }
             }
         }
@@ -109,19 +106,24 @@ public class PlayerListener implements Listener {
                             return true;
                         }
 
+                        int deletedShops = 0;
                         for (Shop shop : shops) {
+
+                            // Check if shop is someone else's
                             if (!Objects.equals(shop.getShopOwner().getPlayer(), player)) {
                                 if (!player.hasPermission("trustshops.tsdelete.others")) {
-                                    plugin.getChatManager().fail(player, "You can't delete someone else's shop!");
-                                    return true;
+                                    continue;
                                 }
                             }
 
-                            if (plugin.getDatabaseManager().deleteShop(block.getLocation())) {
-                                plugin.getChatManager().success(player, "Deleted shop!");
-                            } else {
-                                plugin.getChatManager().fail(player, "Failed to delete shop!");
-                            }
+                            // Delete shop, increment counter if successful
+                            deletedShops += plugin.getDatabaseManager().deleteShop(shop) ? 1 : 0;
+                        }
+
+                        if (deletedShops > 0) {
+                            plugin.getChatManager().success(player, String.format("Deleted %d shops!", deletedShops));
+                        } else {
+                            plugin.getChatManager().fail(player, "Couldn't delete shops at this location!");
                         }
                     }
                     case INFO -> {

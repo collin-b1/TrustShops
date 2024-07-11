@@ -3,8 +3,8 @@ data:
   table-prefix: ts_
 
 # Worlds where shops cannot be created
-#disabled-worlds:
-#  - disabled_world
+disabled-worlds:
+  - disabled_world
 
 # Maximum shops that can be displayed on one page
 max-shops-per-page: 10

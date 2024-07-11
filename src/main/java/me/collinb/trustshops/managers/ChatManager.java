@@ -35,7 +35,7 @@ public class ChatManager {
         String prevPageCommand = String.format("%s %d", commandString, page - 1);
         String nextPageCommand = String.format("%s %d", commandString, page + 1);
 
-        TextComponent component = Component.empty();
+        TextComponent component = Component.text("--- ").color(NamedTextColor.DARK_GRAY);
 
         if (page > 1) {
             component = component.append(Component.text("◀ ")
@@ -45,7 +45,8 @@ public class ChatManager {
             );
         }
 
-        component = component.append(Component.text(String.format("Page %d of %d", page, totalPages))
+        component = component
+                .append(Component.text(String.format("Page %d of %d", page, totalPages))
                 .color(NamedTextColor.GRAY)
         );
 

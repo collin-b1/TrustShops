@@ -56,6 +56,10 @@ public class Shop implements Comparable<Shop> {
         this.stock = 0;
     }
 
+    /**
+     * Setter for shop location, used when the player has selected a container in a command such as /tsinfo.
+     * @param location Location of the shop
+     */
     public void setShopLocation(@NotNull Location location) {
         this.shopLocation = location;
     }
@@ -88,6 +92,12 @@ public class Shop implements Comparable<Shop> {
         return this.stock;
     }
 
+    /**
+     * Get a single shop's display line for shop commands
+     * @param showStock Should stock tag be shown? Looks like: <b>[Stock: n]</b>
+     * @param showLocation Should location be shown? Looks like: <b>Dimension (x, y, z)</b>
+     * @return TextComponent for the line(s) displayed for a single shop at a location.
+     */
     public TextComponent getDisplayLine(boolean showStock, boolean showLocation) {
         TextComponent textComponent = Component.text("[").color(NamedTextColor.DARK_GRAY)
                 .append(Component.text(Objects.requireNonNull(getShopOwner().getName())).color(NamedTextColor.GRAY))
@@ -148,7 +158,11 @@ public class Shop implements Comparable<Shop> {
         return textComponent;
     }
 
+    /**
+     * Retrieves the shop's stock and stores it in stock variable.
+     */
     public void updateStock() {
+        // @TODO Move all of this to constructor?
         if (shopLocation == null) {
             return;
         }
@@ -167,6 +181,11 @@ public class Shop implements Comparable<Shop> {
         stock = totalSold;
     }
 
+    /**
+     * Get the total stock for sale. This is different from just the total amount in the container because it only
+     * includes the amount that can be sold, and ignores excess items.
+     * @return Stock * Sale Amount
+     */
     public int getTotalForSale() {
         return stock * containerAmount;
     }

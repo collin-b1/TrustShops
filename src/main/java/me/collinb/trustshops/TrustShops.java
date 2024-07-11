@@ -9,8 +9,6 @@ import me.collinb.trustshops.managers.DatabaseManager;
 import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.sql.SQLException;
-
 
 public final class TrustShops extends JavaPlugin {
 
@@ -47,16 +45,17 @@ public final class TrustShops extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        databaseManager.closeConnection();
     }
 
-    public void reload () {
+    /**
+     * Reload plugin config values, close database connection, reassign managers.
+     */
+    public void reload() {
         config.reloadConfig();
-        try {
-            databaseManager.getConnection().close();
-        } catch (SQLException e) {
-            getLogger().warning(e.getMessage());
-        }
+
+        databaseManager.closeConnection();
+
         databaseManager = new DatabaseManager(this);
         chatManager = new ChatManager(this);
     }
@@ -73,6 +72,11 @@ public final class TrustShops extends JavaPlugin {
         return databaseManager;
     }
 
+    /**
+     * Check if a material can be used in a shop
+     * @param material Material to check
+     * @return If the material can be used in a shop
+     */
     public boolean isValidShopItem(Material material) {
         return material != null
                 && material.isItem()
