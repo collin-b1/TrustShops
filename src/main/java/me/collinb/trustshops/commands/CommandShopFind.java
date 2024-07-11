@@ -126,7 +126,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
         } else if (strings.length == 2) {
             if (strings[0].equals("buying") || strings[0].equals("selling")) {
                 return plugin.getChatManager().getTabCompleteItems(strings, ((Player) commandSender).getWorld());
-            } else {
+            } else if (strings[0].equals("location")) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             }
         }
