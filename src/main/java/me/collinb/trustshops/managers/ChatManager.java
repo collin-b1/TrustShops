@@ -104,7 +104,6 @@ public class ChatManager {
     public List<String> getTabCompleteItems(@NotNull String[] strings, @NotNull World world) {
         String partialItem = strings[strings.length - 1].toUpperCase().replace("MINECRAFT:", "");
         return Arrays.stream(Material.values())
-                .filter(material -> material.isEnabledByFeature(world))
                 .filter(plugin::isValidShopItem)
                 .map(material -> "minecraft:" + material.toString().toLowerCase())
                 .filter(name -> name.startsWith("minecraft:" + partialItem.toLowerCase()))
