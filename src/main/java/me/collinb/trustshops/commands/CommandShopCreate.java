@@ -23,7 +23,7 @@ public class CommandShopCreate implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
 
         int minSellAmount = plugin.getPluginConfig().getMinSellingAmount();
         int maxSellAmount = plugin.getPluginConfig().getMaxSellingAmount();
@@ -99,7 +99,7 @@ public class CommandShopCreate implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, String @NotNull [] strings) {
         if (strings.length == 1 || strings.length == 3) {
             return plugin.getChatManager().getTabCompleteItems(strings, ((Player) commandSender).getWorld());
         }
