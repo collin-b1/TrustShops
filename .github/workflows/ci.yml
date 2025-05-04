@@ -1,12 +1,17 @@
-name: Release
+name: Build
 
 on:
   push:
+    branches:
+      - 'main'
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - 'main'
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,14 +30,8 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Get build artifact (assumes output is in build/libs/)
-        run: |
-          mkdir -p release
-          cp build/libs/*.jar release/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: release/*.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: jars
+          path: build/libs/TrustShops-*.jar
