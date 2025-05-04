@@ -3,6 +3,7 @@ package me.collinb.trustshops.commands;
 import me.collinb.trustshops.TrustShops;
 import me.collinb.trustshops.shop.Shop;
 import me.collinb.trustshops.shop.ShopTransactionType;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -40,7 +41,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase()) {
             case "buying": {
                 if (args.length >= 3) {
-                    page = Integer.parseInt(args[2]);
+                    page = NumberUtils.toInt(args[2], 1);
                             pageArgumentIncluded = true;
                 }
 
@@ -55,7 +56,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
             }
             case "selling": {
                 if (args.length >= 3) {
-                    page = Integer.parseInt(args[2]);
+                    page = NumberUtils.toInt(args[2], 1);
                     pageArgumentIncluded = true;
                 }
 
@@ -69,7 +70,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
             }
             case "player": {
                 if (args.length >= 3) {
-                    page = Integer.parseInt(args[2]);
+                    page = NumberUtils.toInt(args[2], 1);
                     pageArgumentIncluded = true;
                 }
                 OfflinePlayer shopOwner = Bukkit.getOfflinePlayer(args[1]);
@@ -82,7 +83,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
             }
             case "location": {
                 if (args.length >= 5) {
-                    page = Integer.parseInt(args[4]);
+                    page = NumberUtils.toInt(args[4], 1);
                     pageArgumentIncluded = true;
                 }
                 if (!(commandSender instanceof Player player)) {
@@ -93,9 +94,15 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
                     return false;
                 }
 
-                int x = Integer.parseInt(args[1]);
-                int y = Integer.parseInt(args[2]);
-                int z = Integer.parseInt(args[3]);
+                int x, y, z;
+                try {
+                    x = Integer.parseInt(args[1]);
+                    y = Integer.parseInt(args[2]);
+                    z = Integer.parseInt(args[3]);
+                } catch (NumberFormatException e) {
+                    plugin.getChatManager().fail(commandSender, String.format("Invalid location: %s %s %s", args[1], args[2], args[3]));
+                    return false;
+                }
 
                 Location location = new Location(player.getWorld(), x, y, z);
                 shops = plugin.getDatabaseManager().findShopsByLocation(location);
@@ -107,7 +114,7 @@ public class CommandShopFind implements CommandExecutor, TabCompleter {
         }
         List<@NotNull String> argsList = new ArrayList<>(List.of(args));
         if (pageArgumentIncluded) {
-            argsList.remove(argsList.size() - 1);
+            argsList.removeLast();
         }
         String commandString = String.format("/%s %s", command.getLabel(), String.join(" ", String.join(" ", argsList)));
         plugin.getChatManager().sendShops(shops, commandSender, commandString, page);
