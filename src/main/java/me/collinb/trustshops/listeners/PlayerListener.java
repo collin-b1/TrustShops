@@ -30,7 +30,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW)
     public void onBlockPlace(BlockPlaceEvent event) {
-        handleShopAction(event.getPlayer(), event.getBlock());
+        handleShopAction(event.getPlayer(), event.getBlockPlaced());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
