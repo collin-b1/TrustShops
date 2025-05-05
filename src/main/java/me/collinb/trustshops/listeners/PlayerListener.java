@@ -129,7 +129,7 @@ public class PlayerListener implements Listener {
                     case INFO -> {
                         List<Shop> shops = plugin.getDatabaseManager().findShopsByLocation(block.getLocation());
                         if (!shops.isEmpty()) {
-                            String commandString = String.format("/%s location %d %d %d", plugin.getCommand("tsfind").getLabel(), block.getX(), block.getY(), block.getZ());
+                            String commandString = String.format("/%s location %d %d %d", Objects.requireNonNull(plugin.getCommand("tsfind")).getLabel(), block.getX(), block.getY(), block.getZ());
                             plugin.getChatManager().sendShops(shops, player, commandString, 1);
                         } else {
                             plugin.getChatManager().fail(player, "Not a valid shop!");
