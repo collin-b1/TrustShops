@@ -112,7 +112,7 @@ public class Shop implements Comparable<Shop> {
                         .decorate(TextDecoration.BOLD)
                         .hoverEvent(HoverEvent.showItem(
                                 getContainerItem().key(),
-                                getContainerAmount()
+                                1
                         ))
                 )
                 .append(Component.text(" for ").color(NamedTextColor.DARK_GRAY))
@@ -126,7 +126,7 @@ public class Shop implements Comparable<Shop> {
                         .decorate(TextDecoration.BOLD)
                         .hoverEvent(HoverEvent.showItem(
                                 getPlayerItem().key(),
-                                getPlayerAmount()
+                                1
                         ))
                 );
         if (showStock || showLocation) {
