@@ -23,7 +23,7 @@ public class CommandShopCreate implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
 
         int minSellAmount = plugin.getPluginConfig().getMinSellingAmount();
         int maxSellAmount = plugin.getPluginConfig().getMaxSellingAmount();
@@ -48,7 +48,13 @@ public class CommandShopCreate implements CommandExecutor, TabCompleter {
         // Sold item
         String soldItemName = args[0].toUpperCase().replace("MINECRAFT:", "");
         Material soldItem = Material.getMaterial(soldItemName);
-        int soldAmount = Integer.parseInt(args[1]);
+        int soldAmount;
+        try {
+            soldAmount = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            plugin.getChatManager().fail(sender, "Invalid sell amount.");
+            return true;
+        }
 
         if (!plugin.isValidShopItem(soldItem)) {
             plugin.getChatManager().fail(sender, "Invalid item: " + args[0]);
@@ -63,7 +69,13 @@ public class CommandShopCreate implements CommandExecutor, TabCompleter {
         // Bought item
         String boughtItemName = args[2].toUpperCase().replace("MINECRAFT:", "");
         Material boughtItem = Material.getMaterial(boughtItemName);
-        int boughtAmount = Integer.parseInt(args[3]);
+        int boughtAmount;
+        try {
+            boughtAmount = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            plugin.getChatManager().fail(sender, "Invalid buy amount.");
+            return true;
+        }
 
         if (!plugin.isValidShopItem(boughtItem)) {
             plugin.getChatManager().fail(sender, "Invalid item: " + args[2]);
@@ -87,7 +99,7 @@ public class CommandShopCreate implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, String @NotNull [] strings) {
         if (strings.length == 1 || strings.length == 3) {
             return plugin.getChatManager().getTabCompleteItems(strings, ((Player) commandSender).getWorld());
         }
